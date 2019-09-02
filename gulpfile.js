@@ -1,21 +1,24 @@
 var gulp   = require('gulp')
-  , uglify = require('gulp-uglify')
+  , uglify = require('gulp-uglify-es').default
   , concat = require('gulp-concat-util')
   , wrap   = require('gulp-wrap')
   , tap    = require('gulp-tap')
   , header = require('gulp-header')
+  , util   = require('gulp-util')
   , path   = require('path')
   , version
   , glowscript_libraries;
 
-version = '1.1';
+version = '2.9.0';
 
 glowscript_libraries = {
   "glow": [
-    "lib/jquery/jquery.mousewheel.js",
-    "lib/flot/jquery.flot.min.js",
+    "lib/jquery/2.1/jquery.mousewheel.js",
+    "lib/flot/jquery.flot.js",
     "lib/flot/jquery.flot.crosshair_GS.js",
-    "lib/flot/jquery.flot.axislabels.js",
+    "lib/plotly.js",
+    "lib/opentype/poly2tri.js",
+    "lib/opentype/opentype.js",
     "lib/glMatrix.js",
     "lib/webgl-utils.js",
     "lib/glow/property.js",
@@ -27,26 +30,26 @@ glowscript_libraries = {
     "lib/glow/WebGLRenderer.js",
     "lib/glow/graph.js",
     "lib/glow/color.js",
+    "lib/glow/shapespaths.js",
     "lib/glow/primitives.js",
     "lib/glow/api_misc.js",
+    "lib/glow/extrude.js",
     "lib/glow/shaders.gen.js"
   ],
   "compiler": [
-               "../lib/compiler.js",
-               "../lib/papercomp.js",
-               "../lib/transform-all.js",
-               "../lib/coffee-script.js"],
-           RSrun: [
-               "../lib/rapydscript/stdlib.js"],
-           RScompile: [
-               "../lib/compiler.js",
-               "../lib/papercomp.js",
-               "../lib/transform-all.js",
-               "../lib/rapydscript/baselib.js",
-               "../lib/rapydscript/utils.js",
-               "../lib/rapydscript/ast.js",
-               "../lib/rapydscript/output.js",
-               "../lib/rapydscript/parse.js"],
+    "lib/compiling/GScompiler.js",
+    "lib/compiling/acorn.es.js",
+    "lib/compiling/papercomp.js"
+  ],
+  RSrun: [
+    "lib/rapydscript/runtime.js"
+  ],
+  RScompiler: [
+    "lib/rapydscript/compiler.js",
+    "lib/compiling/GScompiler.js",
+    "lib/compiling/acorn.es.js",
+    "lib/compiling/papercomp.js"
+  ],
 };
 
 gulp.task('default', function() {
@@ -64,8 +67,8 @@ gulp.task('default', function() {
     .pipe(gulp.dest('./lib/glow/'));
 
   Object.keys(glowscript_libraries).forEach(function(lib) {
-    gulp.src(glowscript_libraries[lib])
-      .pipe(uglify())
+    return gulp.src(glowscript_libraries[lib])
+      .pipe(uglify().on('error', util.log)) // notice the error event here
       .pipe(concat(lib + '.' + version + '.min.js'))
       .pipe(header("/*This is     a combined, compressed file.  Look at https://github.com/BruceSherwood/glowscript for source code and copyright information.*/"))
       .pipe(gulp.dest('./package/'));
