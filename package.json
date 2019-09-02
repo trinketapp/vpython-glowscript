@@ -1,6 +1,6 @@
 {
   "name": "glowscript",
-  "version": "1.1.0",
+  "version": "2.9.0",
   "description": "GlowScript is an easy-to-use, powerful environment for creating 3D animations and publishing them on the web.",
   "main": "package/glow.1.1.min.js",
   "directories": {
