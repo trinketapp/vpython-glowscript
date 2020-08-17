@@ -9,7 +9,7 @@ var gulp   = require('gulp')
   , version
   , glowscript_libraries;
 
-version = '2.9.0';
+version = '3.0.0';
 
 glowscript_libraries = {
   "glow": [
@@ -38,7 +38,7 @@ glowscript_libraries = {
   ],
   "compiler": [
     "lib/compiling/GScompiler.js",
-    "lib/compiling/acorn.es.js",
+    "lib/compiling/acorn.js",
     "lib/compiling/papercomp.js"
   ],
   RSrun: [
@@ -47,7 +47,7 @@ glowscript_libraries = {
   RScompiler: [
     "lib/rapydscript/compiler.js",
     "lib/compiling/GScompiler.js",
-    "lib/compiling/acorn.es.js",
+    "lib/compiling/acorn.js",
     "lib/compiling/papercomp.js"
   ],
 };
@@ -59,7 +59,7 @@ gulp.task('default', function() {
   gulp.src('./shaders/*.shader')
     .pipe(tap(function(file) {
       shader_key = path.basename(file.path, '.shader');
-      file.contents = new Buffer('"' + shader_key + '":' + JSON.stringify(file.contents.toString()));
+      file.contents = Buffer.from('"' + shader_key + '":' + JSON.stringify(file.contents.toString()));
       return file;
     }))
     .pipe(concat('shaders.gen.js', { sep : ',\n' }))

@@ -49,12 +49,12 @@ window.glowscript_libraries = { // used for unpackaged (X.Ydev) version
     ide: []
 } 
 
-async function runprog(prog) { 
+async function runprog() { 
     try {
-        eval(prog)
+        eval(window.__program)
         await __main__()
     } catch(err) {
-        reportScriptError(prog, err)
+        reportScriptError(err)
     }
 }
 
@@ -67,17 +67,17 @@ function send(msg) {
     window.parent.postMessage(msg, trusted_origin)
 }
 
-function reportScriptError(program, err) { // This machinery only gives trace information on Chrome
+function reportScriptError(err) { // This machinery only gives trace information on Chrome
     // The trace information provided by browsers other than Chrome does not include the line number
     // of the user's program, only the line numbers of the GlowScript libraries. For that reason
     // none of the following cross browser stack trace reporters are useful for GlowScript:
     // Single-page multibrowser stack trace: https://gist.github.com/samshull/1088402
     // stacktrase.js https://github.com/stacktracejs/stacktrace.js    https://www.stacktracejs.com/#!/docs/stacktrace-js
     // tracekit.js; https://github.com/csnover/TraceKit
+    var program = window.__program
     var feedback = err.toString()+'\n'
     var compile_error = (feedback.slice(0,7) === 'Error: ')
     var prog = program.split('\n')
-    //for(var i=0; i<prog.length; i++) console.log(i, prog[i])
     var unpack = /[ ]*at[ ]([^ ]*)[^>]*>:(\d*):(\d*)/
     var traceback = []
     if (err.cursor) {
@@ -149,8 +149,8 @@ function reportScriptError(program, err) { // This machinery only gives trace in
                 if (L === undefined) continue
                 var N = Number(L)
                 if (isNaN(N)) break // Sometimes necessary.....
-                if (first) traceback.push('At or near line '+N+': '+window.__original.text[N-2])
-                else traceback.push('Called from line '+N+': '+window.__original.text[N-2])
+                if (first) traceback.push('At or near line '+N+': '+window.__original.text[N-1])
+                else traceback.push('Called from line '+N+': '+window.__original.text[N-1])
                 first = false
                 traceback.push("")
                 if (caller == '__$main') break
@@ -271,6 +271,8 @@ function ideRun() {
         }
         $("#loading").remove() // remove the 'Loading program...' message, establish the window context
         window.__context = { glowscript_container: container }
+        window.__program = program
+        window.__reportScriptError = reportScriptError // This enables calling it from canvas.js on an error in a bound function
 
         // See https://itnext.io/error-handling-with-async-await-in-js-26c3f20bc06a for catching error in async function
         // Function() doc: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function
@@ -279,7 +281,7 @@ function ideRun() {
         else ver = parseFloat(options.version)
 
         if (ver >= 2.9 || ver == 'unp') { // GlowScript 2.9 and later
-            runprog(program)
+            runprog()
         } else {
             try { // GlowScript earlier than 2.9
                 window.userMain = eval(program)
@@ -291,12 +293,12 @@ function ideRun() {
                 window.userMain(function (err) {
                     if (err) {
                         window.lasterr = err
-                        reportScriptError(program, err)
+                        reportScriptError(err)
                     }
                 })
             } catch (err) {
                 window.lasterr = err
-                reportScriptError(program, err)
+                reportScriptError(err)
             }
         }
     }

@@ -39,14 +39,14 @@
 <body class="GlowScriptBody">
 <link type="text/css" href="glowscript_libraries/jquery-ui.custom.css" rel="stylesheet" />
 <link type="text/css" href="glowscript_libraries/ide.css" rel="stylesheet" />
-<script type="text/javascript" src="glowscript_libraries/Roboto_Medium_ttf_sans.js"></script>
-<script type="text/javascript" src="glowscript_libraries/NimbusRomNo9L_Med_otf_serif.js"></script>
 <script type="text/javascript" src="glowscript_libraries/jquery.min.js"></script>
 <script type="text/javascript" src="glowscript_libraries/jquery-ui.custom.min.js"></script>
 <script type="text/javascript" src="glowscript_libraries/editor.js"></script>
-<script type="text/javascript" src="glowscript_libraries/RSrun.2.9.min.js"></script>
-<script type="text/javascript" src="glowscript_libraries/glow.2.9.min.js" charset="UTF-8"></script>
+<script type="text/javascript" src="glowscript_libraries/RSrun.3.0.min.js"></script>
+<script type="text/javascript" src="glowscript_libraries/glow.3.0.min.js" charset="UTF-8"></script>
 <script type="text/javascript" src="glowscript_libraries/split.min.js"></script>
+<script type="text/javascript" src="glowscript_libraries/Roboto_Medium_ttf_sans.js"></script>
+<script type="text/javascript" src="glowscript_libraries/NimbusRomNo9L_Med_otf_serif.js"></script>
 </body>
 
 <button onclick="runCode()">Run</button> 
@@ -60,7 +60,7 @@
 <input type="file" id="read_local_file"/>
 
 <script>
-var gsversion = 2.9
+var gsversion = '3.0'
 var printpane = false
 var exporting = false // not currently in export mode
 var lastprintwidth = null
@@ -72,9 +72,10 @@ if (!navigator.onLine) window.Jupyter_VPython = 'glowscript_data/' // get textur
 
 // localCompile is a modification of https://github.com/vpython/glowscript/blob/master/ide/ide.js
 function localCompile(header, compReady, errordiv) {
+    header.source = 'GlowScript '+gsversion+' VPython\n'+header.source
 	errordiv.innerHTML = ""
     var compiler_url
-    if (header.lang == 'vpython' || header.lang == 'rapydscript') {
+    if (header.lang == 'vpython') {
         compiler_url = "glowscript_libraries/RScompiler." + header.version + ".min.js"
     } else compiler_url = "glowscript_libraries/compiler." + header.version + ".min.js"
     window.glowscript_compile = undefined
@@ -139,7 +140,7 @@ function parseVersionHeader( source ) {
     ret.lang = 'javascript' // the default if no language is specified
     if (elements.length == 3) {
         ret.lang = elements[2].toLowerCase()
-        if (!(ret.lang == 'javascript' || ret.lang == 'rapydscript' || ret.lang == 'vpython')) return ret
+        if (!(ret.lang == 'javascript' || ret.lang == 'vpython')) return ret
     }
     var ver = elements[1]
     if (ver != gsversion) alert('The version number, '+ver+', should be '+gsversion)
@@ -165,7 +166,7 @@ function getHeader(exporting) {
             var end = header.source.indexOf('\n')
             var insert
             var w = (lastprintwidth === null) ? 300 : 0.01*lastprintwidth*window.innerWidth
-            if (header.lang == 'vpython' || header.lang == 'rapydscript')
+            if (header.lang == 'vpython')
                  insert = "print_options(place=$('#printing'),  width="+w+", height=window.innerHeight, clear=True)\n"
             else insert = "print_options({place:$('#printing'), width:"+w+", height:window.innerHeight, clear:true})\n"
             header.source = insert + header.source
@@ -190,11 +191,8 @@ function runCode() {
 
 async function runprog(prog) { 
     try {
-        console.log(prog)
         eval(prog)
-        console.log('after eval')
         await __main__()
-        console.log('after __main__()')
     } catch(err) {
         reportScriptError(prog, err)
     }
@@ -202,9 +200,12 @@ async function runprog(prog) {
 
 function ready(program) {
     var w = $("#glows")
-    w[0].innerHTML = "" // Comment this and the next if get a solution for too many WebGL context
+    w[0].innerHTML = "" // Comment this and the next if get a solution for too many WebGL contexts
     w[0].innerHTML = '<div id="glowscript" class="glowscript"></div>'
+
+    window.__context = { glowscript_container: $("#glowscript") }
     runprog(program)
+}
 
 function exportCode() {
 	if (savecode !== null) { // Restore operation
@@ -230,7 +231,6 @@ function showcode(sc) {
         '<div id="' + divid + '" class="glowscript">\n' + 
         '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' +
         '<link type="text/css" href="'+exporturl+'css/redmond/' + verdir + '/jquery-ui.custom.css" rel="stylesheet" />\n' + 
-        '<link href="https://fonts.googleapis.com/css?family=Inconsolata" rel="stylesheet" type="text/css" />\n' + 
         '<link type="text/css" href="' + exporturl + 'css/ide.css" rel="stylesheet" />\n' + 
         '<scr'+'ipt type="text/javascript" src="' + exporturl + 'lib/jquery/' + verdir + '/jquery.min.js"></scr'+'ipt>\n' +
         '<scr'+'ipt type="text/javascript" src="' + exporturl + 'lib/jquery/' + verdir + '/jquery-ui.custom.min.js"></scr'+'ipt>\n' +

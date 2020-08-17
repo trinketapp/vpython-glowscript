@@ -19,7 +19,7 @@ from glob import glob
 import re, os, subprocess
 
 shader_file = ["Export({ shaders: {"]
-for fn in glob("shaders/*.shader"):
+for fn in sorted(glob("shaders/*.shader")):
     name = re.match(r"^shaders[/\\]([^.]+).shader$", fn).group(1)
     f = open(fn, "rt").read()
     shader_file.append( '"' + name + '":' + repr(f) + "," )
@@ -27,7 +27,7 @@ shader_file.append("}});")
 shader_file = "\n".join(shader_file)
 open("lib/glow/shaders.gen.js", "wb").write(shader_file)
 
-version = "2.9"
+version = "3.0"
 # TODO: Extract this information from run.js
 
 glowscript_libraries = {
@@ -57,13 +57,13 @@ glowscript_libraries = {
         ],
     "compile": [
         "../lib/compiling/GScompiler.js",
-        "../lib/compiling/acorn.es.js",
+        "../lib/compiling/acorn.js",
         "../lib/compiling/papercomp.js"
         ],
     "RScompile": [
         "../lib/rapydscript/compiler.js",
         "../lib/compiling/GScompiler.js",
-        "../lib/compiling/acorn.es.js",
+        "../lib/compiling/acorn.js",
         "../lib/compiling/papercomp.js"
         ],
     "RSrun": [
@@ -90,7 +90,7 @@ env["NODE_PATH"] = "build-tools/UglifyJS"
 def minify(inlibs, inlibs_nomin, outlib):
     all = combine(inlibs)
     outf = open(outlib, "wb")
-    
+
     if True: # minify if True
         uglify = subprocess.Popen( "build-tools/node.exe build-tools/Uglify-ES/uglify-es/bin/uglifyjs",
             stdin=subprocess.PIPE,
