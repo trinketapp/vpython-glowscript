@@ -12,38 +12,29 @@
 -->
 </style>
 <!-- InstanceEndEditable -->
-<script type="text/javascript">
-<!--
-function MM_jumpMenu(targ,selObj,restore){ //v3.0
-  eval(targ+".location='"+selObj.options[selObj.selectedIndex].value+"'");
-  if (restore) selObj.selectedIndex=0;
-}
-//-->
-</script>
 </head>
 
 <body>
-<table width="800" border="0" cellpadding="1" cellspacing="0">
-  <!--DWLayoutDefaultTable-->
-  <tr>
-    <td width="10" valign="top" bgcolor="#FFFFFF"><!--DWLayoutEmptyCell-->&nbsp;</td>
-    <td width="10" height="272" valign="top" bgcolor="#DDDDDD"><p>&nbsp;</p>    </td>
-    <td width="173" valign="top" bgcolor="#DDDDDD"><p class="Normal"><a href="index.html">Home</a></p>
-      <p class="Normal">If you're new to Python <br />
-      and VPython: <a href="VisualIntro.html">Introduction</a></p>
-      <p class="Normal">A VPython <a href="VPython_Intro.pdf" target="_blank">tutorial</a></p>
-      <p class="Normal"><a href="videos.html">Introductory Videos</a></p>
-      <p class="Normal"><a href="primitives.html">Pictures</a> of 3D objects</p>
-<p><select id="menu1" onchange="jumpMenu(this)"></select></p>
-<p><select id="menu2" onchange="jumpMenu(this)"></select></p>
-<p><select id="menu3" onchange="jumpMenu(this)"></select></p>
-        
-    <p class="Normal"><a href="new_features.html">What's new</a></p>
-    <p class="Normal"><a href="https://vpython.org" target="_blank">Classic VPython web site</a><br />
-      <a href="license.txt" target="_blank">VPython license</a><br />
-      <a href="https://www.python.org" target="_blank">Python web site</a> <br /></p></td>
-    <td width="21" valign="top" bgcolor="#FFFFFF"><!--DWLayoutEmptyCell-->&nbsp;</td>
-    <td width="586" rowspan="2" valign="top"><!-- InstanceBeginEditable name="content" -->
+<div id="wrapper">
+	<div id="leftmenu">
+		<p class="Normal"><a href="index.html">&nbsp;&nbsp;Home</a></p>
+		<p class="Normal">&nbsp;&nbsp;If you're new to Python <br />
+		   &nbsp;&nbsp;and VPython: <a href="VisualIntro.html">Introduction</a></p>
+		<p class="Normal">&nbsp;&nbsp;A VPython <a href="VPython_Intro.pdf" target="_blank">tutorial</a></p>
+		<p class="Normal"><a href="videos.html">&nbsp;&nbsp;Introductory Videos</a></p>
+		<p class="Normal"><a href="primitives.html">&nbsp;&nbsp;Pictures</a> of 3D objects</p>
+		<p>&nbsp;&nbsp;<select id="menu1" onChange="jumpMenu(this)"></select></p>
+		<p>&nbsp;&nbsp;<select id="menu2" onChange="jumpMenu(this)"></select></p>
+		<p>&nbsp;&nbsp;<select id="menu3" onChange="jumpMenu(this)"></select></p>
+		<p class="Normal"><a href="https://vpython.org" target="_blank">&nbsp; VPython 7 web site</a><br />
+		  <a href="license.txt" target="_blank">&nbsp;&nbsp;VPython license</a><br />
+		  <br />
+		</p>
+		</td>
+	</div>
+
+	<div id="content">
+		<!-- InstanceBeginEditable name="content" -->
       <table width="100%" border="1">
         <tr>
           <td width="76%" height="159"><div align="center"><span class="style1 style2"><font color="#0000A0">The shapes and paths libraries</font></span></div></td>
@@ -82,10 +73,12 @@ function MM_jumpMenu(targ,selObj,restore){ //v3.0
         <p class="Normal">creates a list of 2D x-y coordinates of the corners of a rectangle of width=10 and height=6. If the height value is omitted the shape is a square with its sides equal to the given width.  If you print <strong>rt</strong> you will see this  list of 2D coordinates, starting at the lower right and continuing counterclockwise, end at the starting location:</p>
         <p class="program">[[5, -3], [5, 3], [-5, 3], [-5, -3], [5, -3]]</p>
         <p class="Normal"> The shape can be visualized in VPython by executing the following statement, which extrudes the rectangular shape into the screen, along the line from vec(0,0,0) to vec(0,0,-0.1):</p>
-        <table width="675" height="128" border="0">
+        <table width="727" height="128" border="0">
           <tr>
-            <td width="489" height="124"><p class="program">extrusion(path=[vec(0,0,0), vec(0,0,-0.1)], <br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shape=rt)</p></td>
+            <td width="545" height="124"><p class="program">extrusion(path=[vec(0,0,0), vec(0,0,-0.1)], <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;shape=rt)<br>
+            </p>
+            <h3 class="attribute"><strong><em>The shape is shown in  gray on the default black canvas background.</em></strong></h3></td>
             <td width="172"><p><img src="images/rectangle_shape.jpg" width="172" height="122" alt="rotate rectangle" /></p></td>
           </tr>
         </table>
@@ -289,6 +282,16 @@ function MM_jumpMenu(targ,selObj,restore){ //v3.0
         <p class="Normal"><span class="attribute">fradius</span> Bottom filet radius, fradius defines the  radius of curvature at the bottom of the tooth between the bottom-land and the  tooth. Default value for fradius is 0.02 times the radius. </p>
 <p class="Normal"><span class="attribute">pos</span>, <span class="attribute">rotate</span>, and <span class="attribute">scale</span> parameters are the same  as for other objects.  xscale and yscale are not allowed to be set  independently as the resulting object will not be a meaningful one.  Roundness is not available..</p>
         <p class="Normal"><span class="attribute">res</span> This parameter  defines the drawing mesh  resolution and does not affect the gear structure. Since most of the mesh  points are on a circle, or on a curve defining the tooth profile, res is used  to control curvature resolution at varying scales for different parts of the  mesh. The default value for res is 1.0, and a better resolution is obtained as  res is increased.</p>
+        <p class="Normal"><strong>Inward-pointed gear teeth</strong></p>
+        <p class="Normal">You can make a gear with inward-pointing teeth by combining a circular outer shape with an innner gear shape:</p>
+        <table width="871" border="0">
+          <tr>
+            <td width="735" height="153"><p class="program">outer = shapes.circle(radius=1) # a disk<br>
+              inner = shapes.gear(radius=0.8) # a gear-shaped hole in the disk<br>
+            extrusion(path=[vec(0,0,0), vec(0,0,0.2)], shape=[outer, inner])</p></td>
+            <td width="126"><img src="images/inwardgear.jpg" alt="gear with inward-pointing teeth" width="137" height="135"></td>
+          </tr>
+        </table>
         <p class="Normal"><strong><font color="#0000a0"><a name="rackgear" id="rackgear"></a>Rack gear</font></strong></p>
         <table width="676" border="0">
           <tr>
@@ -320,12 +323,9 @@ function MM_jumpMenu(targ,selObj,restore){ //v3.0
         <p class="Normal"><span class="attribute">yscale</span> Scaling multiplier in y direction only, default = 1</p>
         <p class="Normal">See the description of<strong> </strong><a href="#gear"><strong>shapes.gear</strong></a> for information about its many special attributes.</p>
       </div>
-    <!-- InstanceEndEditable --></td>
-  </tr>
-  <tr>
-    <td height="16" colspan="4"></td>
-  </tr>
-</table>
+    <!-- InstanceEndEditable -->		
+    </div>
+</div>
 </body>
 <script type="text/javascript" language="javascript" src="navigation.js"></script>
 <!-- InstanceEnd --></html>

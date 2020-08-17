@@ -28,10 +28,10 @@ $(function () {
         // Remove a newline or similar character at the end of header:
         if (header.charCodeAt(header.length-1) < 32)
             header = header.substring(0,header.length-1)
-        var rest = source.substr( header.length+1 )
+        var rest = source.substr( sourceLines[0].length+1 )
         var ret = {
             version: null,
-            lang: '', // 'vpython' (default) or 'rapydscript' or 'javascript' or a string that is neither (e.g. when editing header)
+            lang: '', // 'vpython' (default) or 'javascript' or a string that is neither (e.g. when editing header)
             source: rest,
             ok: false,
             unpackaged: false,
@@ -49,23 +49,25 @@ $(function () {
         ret.lang = 'javascript' // the default if no language is specified
         if (elements.length == 3) {
             ret.lang = elements[2].toLowerCase()
-            if (!(ret.lang == 'javascript' || ret.lang == 'coffeescript' || ret.lang == 'rapydscript' || ret.lang == 'vpython')) return ret
+            if (!(ret.lang == 'javascript' || ret.lang == 'vpython')) return ret
         }
         var ver = elements[1]
         var okv = parseVersionHeader.okVersions[ver]
         if (okv === undefined) okv = false
+        // Prior to version 3.0, we stripped the header line from the source:
+        else if (Number(okv) < 3.0) source = source.substr(sourceLines[0].length+1) 
         var unpackaged = (okv === "unpackaged")
         return {
             version: okv,
             lang: ret.lang,
-            source: rest, 
+            source: source, 
             ok: okv, 
             unpackaged:unpackaged, 
             isCurrent: okv && (unpackaged || ver==parseVersionHeader.defaultVersion) 
         }
     }
     
-    parseVersionHeader.defaultVersion = "2.9"
+    parseVersionHeader.defaultVersion = "3.0"
     parseVersionHeader.defaultHeader = "GlowScript " + parseVersionHeader.defaultVersion+' VPython'
     parseVersionHeader.errorMessage = "GlowScript " + parseVersionHeader.defaultVersion
     // Map each version that can be loaded to a packaged version (usually itself), or "unpackaged" if it is the current development version
@@ -88,6 +90,7 @@ $(function () {
         "2.7": "2.7",
         "2.8": "2.8",
         "2.9": "2.9",
+        "3.0": "3.0",
         "0.4dev" : "0.4",
         "0.5dev" : "0.5",
         "0.6dev" : "0.6",
@@ -104,7 +107,8 @@ $(function () {
         "2.7dev" : "2.7",
         "2.8dev" : "2.8",
         "2.9dev" : "2.9",
-        "3.0dev" : "unpackaged"
+        "3.0dev" : "3.0",
+        "3.1dev" : "unpackaged"
     }
 
     /******** Functions to talk to the API on the server ***********/
@@ -575,7 +579,8 @@ $(function () {
         page.find(".folder-download.button").prop("href", unroute({page:"downloadFolder", user:username, program:'program', folder:folder}))
         pageBody.html(page)
 
-        function createDialog( templ, doCreate ) { // dialog for creating a new program
+        function createDialog( templ, doCreate ) {
+            // dialog for creating a new program (temp1 == '#prog-new-dialog') or a new folder (temp1 == '#folder-new-dialog')
             var $dialog = $(templ).clone().removeClass("template")
             $dialog.dialog({
                 width: 300,
@@ -598,7 +603,7 @@ $(function () {
             })
         }
     	
-        function copyOrRename(dialog, oldfolder, oldname) {
+        function copyOrRename(dialog, oldfolder, oldname) { // copy or rename a program
             renameDialog(dialog, oldname, function($dlg) {
                 var newname = $dlg.find('input[name="name"]').val()
                 newname = newname.replace(/ /g,'') // There are problems with spaces or underscores in names
@@ -729,6 +734,10 @@ $(function () {
                 	alert('A folder name cannot contain "/".')
                 	return false
                 }
+                if (name in set_of_folders) {
+                    alert('There already exists a folder named "'+name+'"')
+                    return false
+                }
                 var p = $dlg.find('input[name="isPublic"]').is(":checked") // true is checked, which means public
                 apiPut({user:username, folder:name}, {public:p}, function () {
                     navigate( {page:"folder", user:username, folder:name} )
@@ -762,11 +771,21 @@ $(function () {
                 	alert('A program name cannot contain "/".')
                 	return false
                 }
-                else {
-                    apiPut({user:username, folder:folder, program:name}, { source: parseVersionHeader.defaultHeader+"\n" }, function () {
-                        navigate({page:"edit", user:username, folder:folder, program:name})
-                    })
-                }
+                var ok = true
+                apiGet( {user:username, folder:folder, program:LIST}, function (data) {
+                    for (var pi=0; pi<data.programs.length; pi++) {
+                        if (data.programs[pi].name === name) {
+                            ok = false
+                            alert('There already exists a program named "'+name+'"')
+                            break
+                        }
+                    }
+                    if (ok) {
+                        apiPut({user:username, folder:folder, program:name}, { source: parseVersionHeader.defaultHeader+"\n" }, function () {
+                            navigate({page:"edit", user:username, folder:folder, program:name})
+                        })
+                    }
+                })
             })
             return false
         })
@@ -1104,9 +1123,9 @@ $(function () {
                 if (header.unpackaged) 
                     page.find(".embedWarning").text("Embedding programs with development versions of GlowScript is not recommended.  They will likely be broken by further changes, and the packages used for embedding may not match the packages used to run in an development version.")
                 var compiler_url
-                if (header.lang == 'vpython' || header.lang == 'rapydscript') {
+                if (header.lang == 'vpython') {
                 	compiler_url = "../package/RScompiler." + header.version + ".min.js"
-            	} else compiler_url = "../package/compiler." + header.version + ".min.js"
+                } else compiler_url = "../package/compiler." + header.version + ".min.js"
                 window.glowscript_compile = undefined
                 $.ajax({
                     url: compiler_url,
@@ -1132,16 +1151,6 @@ $(function () {
                     var divid = "glowscript"
                     var remove = header.version==='0.3' ? '' : '.removeAttr("id")'
                     var main
-                    if (header.lang == 'coffeescript') {
-                        // The CoffeeScript -> JavaScript converter wraps the code in an extra protective layer, in addition
-                        // to the wrapper imposed by GlowScript. The following code effectively unwraps the extra layer.
-                        // There's probably a far more elegant way to deal with this....
-                        var fname = '__RUN_GLOWSCRIPT'
-                        main = fname+'()()'
-                        embedScript = embedScript.slice(0,where+1) + fname + ' = ' + embedScript.slice(where+2,embedScript.length)
-                        where = embedScript.indexOf('}).call(this)')
-                        embedScript = embedScript.slice(0,where+1) + embedScript.slice(where+13,embedScript.length)
-                    }
                     var v = Number(header.version.substr(0,3))
                     if (v >= 2.9) main = '__main__()' // Starting August 2019, no longer using Streamine
                     else if (v == 2.8) main = 'main(function(err) {;})' // Starting June 2019, using up-to-date Streamline file
@@ -1157,13 +1166,12 @@ $(function () {
                     var runner = ''
                     var exporturl = "https://www."+website+".org/"
                     if (v >= 2.5) exporturl = "https://s3.amazonaws.com/glowscript/"
-                    if (header.lang == 'vpython' || header.lang == 'rapydscript') 
+                    if (header.lang == 'vpython') 
                     	runner = '<script type="text/javascript" src="'+exporturl+'package/RSrun.' + header.version + '.min.js"></script>\n'
                     var embedHTML = (
                         '<div id="' + divid + '" class="glowscript">\n' + 
                         '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n' +
-                        '<link type="text/css" href="'+exporturl+'css/redmond/' + verdir + '/jquery-ui.custom.css" rel="stylesheet" />\n' + 
-                        '<link href="https://fonts.googleapis.com/css?family=Inconsolata" rel="stylesheet" type="text/css" />\n' + 
+                        '<link type="text/css" href="'+exporturl+'css/redmond/' + verdir + '/jquery-ui.custom.css" rel="stylesheet" />\n' +
                         '<link type="text/css" href="'+exporturl+'css/ide.css" rel="stylesheet" />\n' + 
                         mathjax +
                         '<script type="text/javascript" src="'+exporturl+'lib/jquery/' + verdir + '/jquery.min.js"></script>\n' +
@@ -1233,7 +1241,7 @@ $(function () {
         	page.find(".prog-datetime").text(date_to_string(progData.datetime))
         	// program is the name of the file; progData.source is the program source in that file
         	var lang = parseVersionHeader(progData.source).lang
-            if (!(lang == 'javascript' || lang == 'coffeescript' || lang == 'rapydscript' || lang == 'vpython')) lang = 'javascript'
+            if (!(lang == 'javascript' || lang == 'vpython')) lang = 'javascript'
             
             if (navigator.userAgent.match(/Android|BlackBerry|iPhone|iPad|iPod|Opera Mini|IEMobile/i)) {
 	        	var editor = GSedit
@@ -1258,7 +1266,7 @@ $(function () {
 		        editor.getSession().setMode(new mode())
 	            editor.setTheme({ cssClass: "ace-custom" })
 	            editor.getSession().setValue(progData.source)
-	            editor.setReadOnly( !isWritable )
+                editor.setReadOnly( !isWritable )
 	            editor.selection.moveCursorDown() // position cursor at start of line 2, below GlowScript header
                 editor.focus()
 	            if (isWritable) {
@@ -1281,8 +1289,8 @@ $(function () {
 
     /*********** Customization of the ACE editor *************/
     // See https://github.com/ajaxorg/ace/wiki/Creating-or-Extending-an-Edit-Mode
-    // mode-javascript.js and mode-coffee.js are loaded by ide/index.html.
-    // These modules in turn load worker-javascript.js and worker-coffee.js in lib/ace.
+    // mode-javascript.js is loaded by ide/index.html.
+    // These modules in turn load worker-javascript.js in lib/ace.
     // See lib/ace/FileSource.txt for where to find updated ACE files, and how they
     // were modified in minor ways for GlowScript use.
     var customACEMode = function(lang, source) { // lang is "javascript" or some fragment
@@ -1319,12 +1327,13 @@ $(function () {
 
         define('ace/mode/visualjs_highlight_rules', function (ace_require, exports, module) {
             var oop = ace_require("ace/lib/oop")
-            if (lang == 'coffeescript' || lang == 'rapydscript' || lang == 'vpython') var Rules = ace_require("ace/mode/coffee_highlight_rules").CoffeeHighlightRules
-            else var Rules = ace_require("ace/mode/javascript_highlight_rules").JavaScriptHighlightRules
+            var Rules
+            if (lang == 'vpython') Rules = ace_require("ace/mode/python_highlight_rules").PythonHighlightRules
+            else Rules = ace_require("ace/mode/javascript_highlight_rules").JavaScriptHighlightRules
 
             var VisualHighlightRules = function () {
                 this.$rules = (new Rules()).getRules()
-                if (lang == 'rapydscript' || lang == 'vpython') this.$rules.start = [{ regex: /GlowScript\s+[\d\.]*[dev]*\s+[A-Za-z]*/, token: "keyword.version_header" } ].concat(this.$rules.start)
+                if (lang == 'vpython') this.$rules.start = [{ regex: /GlowScript\s+[\d\.]*[dev]*\s+[A-Za-z]*/, token: "keyword.version_header" } ].concat(this.$rules.start)
                 else this.$rules.start = [{ regex: /GlowScript\s+[\d\.]*[dev]*/, token: "keyword.version_header" } ].concat(this.$rules.start)
                 for(var id in libraryWords) {
                     this.$rules.start = [{ regex: id, token: libraryWords[id] } ].concat(this.$rules.start)
@@ -1338,7 +1347,7 @@ $(function () {
         //------------------------------------------------------------------------------------------------------
         define('ace/mode/visualjs', function (ace_require, exports, module) {
             var oop = ace_require("ace/lib/oop")
-            if (lang == 'rapydscript' || lang == 'vpython') var BaseMode = ace_require("ace/mode/python").Mode
+            if (lang == 'vpython') var BaseMode = ace_require("ace/mode/python").Mode
             else var BaseMode = ace_require("ace/mode/javascript").Mode
             var Tokenizer = ace_require("ace/tokenizer").Tokenizer
             var VisualHighlightRules = ace_require("ace/mode/visualjs_highlight_rules").VisualHighlightRules
@@ -1350,98 +1359,12 @@ $(function () {
             }
             oop.inherits(Mode, BaseMode); // nead a semicolon here due to following left parens
             
-            
-            (function () {
-                this.createWorker = function (session) { // *****************************************************
-                    
-                    if (worker !== undefined && worker !== null) worker.terminate() // stop a previous worker
-                    
-                    //if (lang == 'javascript') worker = new WorkerClient(["ace"], "ace/mode/javascript_worker", "JavaScriptWorker")
-                    worker = new WorkerClient(["ace"], "ace/mode/javascript_worker", "JavaScriptWorker")
-                    
-                    var doc = session.getDocument()
-                    if (worker !== undefined && worker !== null) worker.$doc = doc // must set this in order to be able to execute worker.terminate()
-                    
-                    //if (lang == 'rapydscript' || lang == 'vpython') worker.call("setValue", [''])
-                    //else worker.call("setValue", [lintPrefix])
-                    worker.call("setValue", [lintPrefix])
-
-                    var header = null
-                    var headerError = null
-
-                    doc.on("change", function (e) {
-                        // Check the header declaration and adjust for the lintPrefix comment /* */ inserted before JavaScript source
-                        var ee = JSON.parse(JSON.stringify(e)) // We don't want to modify our parameter, so clone it
-                        
-                        if (e.data.range.start.row === 0) {
-                            // Could note that language has changed, suggest reloading the page
-                            header = parseVersionHeader(doc.getValue())
-                            if ((header.lang == 'javascript' || header.lang == 'coffeescript' || header.lang == 'rapydscript' || header.lang == 'vpython') && header.lang != lang) 
-                                alert("Reload the page to switch to editing " + header.lang)
-                            else if (header.isCurrent)
-                                headerError = null
-                            else if (header.ok)
-                                headerError = { row: 0, column: 0, text: "Not the current version.  Expected: " + parseVersionHeader.errorMessage, type: "warning" }
-                            else
-                                headerError = { row: 0, column: 0, text: "Missing required version declaration.  Expected: " + parseVersionHeader.errorMessage, type: "error" }
-
-                            ee.data.range.start.column += 2
-                        }
-                        if (e.data.range.end.row === 0) 
-                            ee.data.range.end.column += 2
-                        
-                        if (lang == 'javascript') {
-                            // Adjust for the fact that we inserted a row into JavaScript documents sent to the worker.
-                            ee.data.range.start.row += 1
-                            ee.data.range.end.row += 1
-                            ee.range = { start: ee.data.range.start, end: ee.data.range.end }
-                        }
-
-                        worker.emit("change", ee)
-                    })
-                    
-                    // CoffeeScript (no conflict with worker.on options for JavaScript):
-                    worker.on("error", function(e) {
-                        var errors = [e.data]
-                        errors[0].row += 1
-                        if (headerError) errors.push(headerError)
-                        session.setAnnotations(errors)
-                    })
-                    
-                    worker.on("ok", function(e) {
-                        session.clearAnnotations()
-                    })
-
-                    // JavaScript (no conflict with worker.on options for CoffeeScript):
-                    worker.on("jslint", function (results) {
-                        var errors = [];
-                        if (headerError) errors.push(headerError)
-                        for (var i = 0; i < results.data.length; i++) {
-                            var error = results.data[i];
-                            if (error) {
-                                errors.push({
-                                    row: error.line - 2,
-                                    column: error.character - 1,
-                                    text: error.reason,
-                                    type: "warning",
-                                    lint: error
-                                })
-                            }
-                        }
-                        session.setAnnotations(errors)
-                    })
-
-                    worker.on("narcissus", function (e) {
-                        var errors = [e.data]
-                        errors[0].row -= 1
-                        if (headerError) errors.push(headerError)
-                        session.setAnnotations(errors)
-                    })
-
-                    return worker
-                }
-                
-            }).call(Mode.prototype)
+            // There was formerly "worker" machinery here which showed a warning icon at the left of an line with an error, but
+            //     (1) This tends to confuse students.
+            //     (2) GlowScript catches lots of errors already with respect to parens, brackets, braces, and quotes.
+            //     (3) Highlighting is handled separately, so is not affected by eliminating workers.
+            //     (4) Caused some awkwardness in changing the language on the first line.
+            //     (5) And the killer issue: workers chew up LOTS of CPU time for little gain.
             
             exports.Mode = Mode
         })
