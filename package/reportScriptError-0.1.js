@@ -1,4 +1,4 @@
-function reportScriptError(program, err) { // This machinery only gives trace information on Chrome
+function reportScriptError(program, err, versionStringAdded) { // This machinery only gives trace information on Chrome
     // The trace information provided by browsers other than Chrome does not include the line number
     // of the user's program, only the line numbers of the GlowScript libraries. For that reason
     // none of the following cross browser stack trace reporters are useful for GlowScript:
@@ -79,9 +79,17 @@ function reportScriptError(program, err) { // This machinery only gives trace in
                 }
                 if (L === undefined) continue
                 var N = Number(L)
+                var line_no = N;
+                var line_index = N - 1;
                 if (isNaN(N)) break // Sometimes necessary.....
-                if (first) traceback.push('At or near line '+N+': '+window.__original.text[N-2])
-                else traceback.push('Called from line '+N+': '+window.__original.text[N-2])
+                if (versionStringAdded) {
+                    line_no--;
+                }
+                else if (!/^GlowScript/.test(window.__original.text[0])) {
+                  line_index--;
+                }
+                if (first) traceback.push('At or near line '+line_no+': '+window.__original.text[line_index])
+                else traceback.push('Called from line '+line_no+': '+window.__original.text[line_index])
                 first = false
                 traceback.push("")
                 if (caller == '__$main') break
